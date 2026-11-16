@@ -78,3 +78,11 @@ Failed:    First fix still failed my exact case in the browser check: the select
            after splitting it reached the start of line two → also trim a selection that ends at the start of a line.
            Verified with 4 keyboard cases + a real mouse drag on my exact content; 32 tests still green.
 Result:    live ✅
+
+### Loop A fix: spacing changed after heading → normal
+Prompt:    "When I turn a line to H1/H2 and back to normal, the space is wider than before" (manual test).
+AI did:    Inspected stored HTML: lines joined by a soft break (<br>) sat tight, separate paragraphs had a 1em gap, so
+           any format that split them changed the spacing. Switched to Docs-like spacing: paragraphs one line apart,
+           headings and lists keep their own margins, empty paragraphs keep height (Enter twice = blank line). CSS only.
+Failed:    none. Measured in the browser: paragraph gap = soft-break gap = 26 px.
+Result:    live ✅

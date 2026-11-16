@@ -68,8 +68,13 @@ main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .editor-body { display: flex; gap: 1rem; align-items: flex-start; }
 .paper { flex: 1; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 60vh; padding: 2rem 2.5rem; }
 .paper .tiptap { outline: none; min-height: 55vh; line-height: 1.6; }
+/* Docs-like spacing: paragraphs sit one line apart, so a soft break (Shift+Enter) and a new paragraph look the same,
+   and turning a heading back into text never changes the spacing. Headings and lists keep their own room. */
+.paper .tiptap p { margin: 0; min-height: 1.6em; }
+.paper .tiptap h1, .paper .tiptap h2, .paper .tiptap h3 { margin: .9em 0 .35em; line-height: 1.25; }
+.paper .tiptap ul, .paper .tiptap ol { margin: .35em 0; padding-left: 1.6em; }
+.paper .tiptap li p { margin: 0; }
 .paper .tiptap > :first-child { margin-top: 0; }
-.paper .tiptap li p { margin: .15rem 0; }
 .history { width: 280px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: .9rem; }
 .history-head { display: flex; justify-content: space-between; align-items: center; }
 .history ul { list-style: none; padding: 0; margin: .5rem 0 0; }
