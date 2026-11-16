@@ -68,3 +68,13 @@ Failed:    - Root cause of "New document did nothing": production served client/
            - Dashboard stayed on "Loading…" when the API failed → shows the error with Retry.
 Result:    live ✅ deployed 742235a via deploy.sh (tests ran on the server first); live smoke: create, save,
            sanitize (<script> stripped), versions, deep link all OK. Awaiting my manual checklist on phone + desktop.
+
+### Loop A fix: heading applied to two lines
+Prompt:    "I highlighted one line and pressed H2 but it made both lines H2" (from my manual test).
+AI did:    Inspected the stored HTML: the two lines were ONE paragraph joined by a soft break (<h3>…<br />…</h3>), so a
+           block format changed both. Added splitLines.js: before H1–H3 / lists, soft breaks in the selected
+           paragraph become real paragraph splits, so formats apply per line.
+Failed:    First fix still failed my exact case in the browser check: the selection ended right after the break, so
+           after splitting it reached the start of line two → also trim a selection that ends at the start of a line.
+           Verified with 4 keyboard cases + a real mouse drag on my exact content; 32 tests still green.
+Result:    live ✅
