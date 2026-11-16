@@ -66,4 +66,5 @@ Failed:    - Root cause of "New document did nothing": production served client/
              mobile → header wraps.
            - Sanitizer writes <br> as <br /> → test fixture uses the normalized form (equivalent HTML, not data loss).
            - Dashboard stayed on "Loading…" when the API failed → shows the error with Retry.
-Result:    see deploy below
+Result:    live ✅ deployed 742235a via deploy.sh (tests ran on the server first); live smoke: create, save,
+           sanitize (<script> stripped), versions, deep link all OK. Awaiting my manual checklist on phone + desktop.

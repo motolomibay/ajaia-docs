@@ -14,7 +14,7 @@ npm test --silent
 npm run build --silent
 systemctl restart ajaia-docs
 for i in {1..20}; do
-  if curl -fsS "$URL/api/users" > /dev/null; then echo "Live: $URL"; exit 0; fi
+  if curl -fs "$URL/api/users" > /dev/null; then echo "Live: $URL"; exit 0; fi
   sleep 0.5
 done
 echo "Health check failed" >&2
