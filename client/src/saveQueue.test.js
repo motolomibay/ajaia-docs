@@ -92,3 +92,42 @@ describe('autosave queue', () => {
     expect(q.busy).toBe(false);
   });
 });
+
+describe('stress', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('S-3 500 edits in 10 s with random server latency: never 2 in flight, last edit is saved', async () => {
+    let active = 0; let maxActive = 0; let stored = null; let requests = 0;
+    const save = (v) => new Promise((resolve, reject) => {
+      active++; requests++; maxActive = Math.max(maxActive, active);
+      const fail = Math.random() < 0.1; // 10% of saves fail and must be retried
+      setTimeout(() => { active--; if (fail) reject(new Error('flaky')); else { stored = v; resolve(); } }, 50 + Math.random() * 700);
+    });
+    const q = createSaveQueue(save, { delay: 300, retryMs: 500 });
+    for (let i = 0; i < 500; i++) { q.schedule(`edit ${i}`); await vi.advanceTimersByTimeAsync(20); }
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(maxActive).toBe(1);
+    expect(stored).toBe('edit 499');
+    expect(q.busy).toBe(false);
+    expect(requests).toBeLessThan(100); // debounced, not one request per keystroke
+  });
+});
+
+describe('stop vs destroy', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('destroy() (page cleanup) does not disable the queue; stop() (access lost) does', async () => {
+    const f = fakeSave();
+    const q = createSaveQueue(f.save, { delay: 100 });
+    q.destroy();
+    q.schedule('still works'); await vi.advanceTimersByTimeAsync(100);
+    expect(f.calls.map((c) => c.value)).toEqual(['still works']);
+    f.calls[0].resolve(); await tick();
+    q.stop();
+    q.schedule('ignored'); await vi.advanceTimersByTimeAsync(1000);
+    expect(f.calls).toHaveLength(1);
+    expect(q.busy).toBe(false);
+  });
+});

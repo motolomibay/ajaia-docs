@@ -15,7 +15,17 @@ const DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../client/
 export function createApp({ db, secret = 'dev-secret-change-me', secure = false, now = Date.now }) {
   const app = express();
   app.disable('x-powered-by');
-  app.use((_req, res, next) => { res.set('X-Content-Type-Options', 'nosniff'); next(); });
+  app.use((_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+      // Only our own scripts; inline styles are needed by the editor. Defense in depth on top of the sanitizer.
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        + "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    });
+    next();
+  });
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser(secret));
   app.use(loadUser(db));

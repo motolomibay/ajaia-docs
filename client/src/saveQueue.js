@@ -9,6 +9,7 @@ export function createSaveQueue(save, { delay = 800, retryMs = 2000, onStatus = 
   let timer = null;
   let retryTimer = null;
   let waiters = [];
+  let stopped = false;
 
   const settle = () => { const w = waiters; waiters = []; w.forEach((fn) => fn()); };
 
@@ -42,6 +43,7 @@ export function createSaveQueue(save, { delay = 800, retryMs = 2000, onStatus = 
 
   return {
     schedule(value) {
+      if (stopped) return;
       latest = value;
       hasPending = true;
       onStatus('saving');
@@ -57,7 +59,10 @@ export function createSaveQueue(save, { delay = 800, retryMs = 2000, onStatus = 
       if (!inFlight) kick();
       return done;
     },
-    get busy() { return hasPending || inFlight; },
+    get busy() { return !stopped && (hasPending || inFlight); },
+    // Clear timers (page cleanup). The queue keeps working if it is used again.
     destroy() { clearTimeout(timer); clearTimeout(retryTimer); settle(); },
+    // Permanently stop: nothing more will be sent (used when access to the document is lost).
+    stop() { stopped = true; clearTimeout(timer); clearTimeout(retryTimer); settle(); },
   };
 }

@@ -117,3 +117,27 @@ AI did:    Server: shares table (editor/viewer, upsert, cascade), getRole → ow
 I changed: Approved as proposed.
 Failed:    none during build (one cleanup in review: replaced a window global for the upload header with getExpectedUser()).
 Result:    live ✅
+
+### Loop B: edge-case run on the live site (by AI, at my request)
+Prompt:    Run 20–22 on the VPS with screenshots (close-tab save, revoked while editing, viewer can't sneak edits).
+AI did:    Scripted in a real browser against the live URL; viewer check also fired direct API calls (versions,
+           restore, edit, share-to-self) from Carol's browser. Throwaway doc deleted afterwards.
+Result:    3/3 passed; all viewer API attempts 403, doc unchanged. Noted: after revoke Bob keeps the editor UI until
+           refresh (data is safe) → candidate fix in Loop C.
+
+## Loop C: Hardening (stress suite + whole-project review)
+Prompt:    Build the stress suite from TEST.md §8, review the whole project, fix what it finds (incl. the revoke UX).
+AI did:    scripts/stress.mjs (`npm run stress`, own server + throwaway DB): S-1 load 50 conns/20 s (0 errors, p99 140 ms),
+           S-2 same-doc race, S-5 900 KB doc, S-6 upload abuse ×3 rounds, S-7 share churn, S-8 hard kill mid-writes.
+           S-3 autosave burst (random latency + 10% failures) and S-4 1,000-save version cap in Vitest. 6/6 + 58 tests.
+           Review fixes: UTF-8 upload filenames; CSP / X-Frame-Options / Referrer-Policy headers (0 CSP violations
+           across all browser regressions); editor locks with a "your access changed — Reload" banner on 403.
+I changed: Approved.
+Failed:    - AI's first S-6/S-8 passed too easily (GC called in the test process, not the server; writer kept going
+             after the kill so "stored ≥ acked" was trivial) → AI tightened them itself: 3 upload rounds must plateau;
+             writes stop at the kill and stored must equal the last acknowledged save. Both still pass.
+           - Review probe found `Résumé 计划.txt` titled "RÃ©sumÃ© è®¡å" (multer reads names as Latin-1) → decode UTF-8.
+           - First access-lost fix flickered: derived from save status, so the next keystroke cleared it → latched state.
+           - Then AI caught its own risk: making destroy() permanent could kill autosave during React cleanup → split
+             into destroy() (timers only) and stop() (permanent), with a test.
+Result:    live ✅

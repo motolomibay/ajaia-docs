@@ -40,7 +40,9 @@ export function importRoutes(db, { now }) {
   r.post('/documents/import', requireUser, receive, (req, res) => {
     const file = req.file;
     if (!file) throw new HttpError(400, 'Choose a file to upload');
-    const ext = path.extname(file.originalname).toLowerCase();
+    // Multipart filenames arrive as Latin-1; browsers send UTF-8 bytes, so decode them back ("Résumé", "计划").
+    const name = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const ext = path.extname(name).toLowerCase();
     if (!TYPES.includes(ext)) throw new HttpError(415, 'Only .txt and .md files are supported');
     if (file.size === 0) throw new HttpError(400, 'The file is empty');
 
@@ -53,8 +55,8 @@ export function importRoutes(db, { now }) {
     if (text.includes('\u0000')) throw new HttpError(400, 'The file is not a text file');
 
     const html = sanitize(ext === '.md' ? markdownToHtml(text) : textToHtml(text)).replace(/>\s*\n\s*</g, '><').trim();
-    const base = path.basename(file.originalname, path.extname(file.originalname)).trim();
-    const title = (base || 'Imported document').slice(0, MAX_TITLE);
+    const base = path.basename(name, path.extname(name)).trim();
+    const title = Array.from(base || 'Imported document').slice(0, MAX_TITLE).join(''); // never split an emoji
     const ts = new Date(now()).toISOString();
     const { lastInsertRowid } = insertDoc.run(req.user.id, title, html, req.user.id, ts, ts);
     res.status(201).json({ id: Number(lastInsertRowid), title });

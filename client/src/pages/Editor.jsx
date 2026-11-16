@@ -60,14 +60,22 @@ function DocumentEditor({ initial, user }) {
   const [showHistory, setShowHistory] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const [showShare, setShowShare] = useState(false);
+  // Latched: once a save is refused with 403 (access revoked or downgraded while open), editing stops until reload.
+  const [accessLost, setAccessLost] = useState(false);
   const docId = initial.id;
   const role = initial.role;
   const canEdit = role === 'owner' || role === 'editor';
 
   const queue = useMemo(() => createSaveQueue(
     (content_html) => api(`/documents/${docId}`, { method: 'PATCH', body: { content_html } }),
-    { onStatus: (state, err) => setStatus({ state, message: err?.message, status: err?.status }) },
+    {
+      onStatus: (state, err) => {
+        if (err?.status === 403) setAccessLost(true);
+        setStatus({ state, message: err?.message, status: err?.status });
+      },
+    },
   ), [docId]);
+
 
   const editor = useEditor({
     extensions,
@@ -130,6 +138,12 @@ function DocumentEditor({ initial, user }) {
     setHistoryKey((k) => k + 1);
   }
 
+  useEffect(() => {
+    if (!accessLost) return;
+    editor?.setEditable(false);
+    queue.stop(); // nothing more can be saved; also stops the "unsaved changes" prompt on reload
+  }, [accessLost, editor, queue]);
+
   const statusText = status.state !== 'error' ? STATUS_TEXT[status.state]
     : status.status === 401 ? 'Not saved: signed out in another tab'
     : `Not saved: ${status.message}`;
@@ -156,21 +170,27 @@ function DocumentEditor({ initial, user }) {
             </div>
           )}
         </div>
-        {canEdit && <span className={`status ${status.state}`} aria-live="polite">{statusText}</span>}
-        {canEdit && (
+        {canEdit && !accessLost && <span className={`status ${status.state}`} aria-live="polite">{statusText}</span>}
+        {canEdit && !accessLost && (
           <button className="small-btn" onClick={() => { setShowHistory((s) => !s); setHistoryKey((k) => k + 1); }}>
             History
           </button>
         )}
         {role === 'owner' && <button className="primary" onClick={() => setShowShare(true)}>Share</button>}
       </div>
-      {editor && canEdit && <Toolbar editor={editor} />}
+      {accessLost && (
+        <div className="viewer-note">
+          Your access to this document changed, so your latest edits were not saved.{' '}
+          <button className="link" onClick={() => window.location.reload()}>Reload</button> to see your current access.
+        </div>
+      )}
+      {editor && canEdit && !accessLost && <Toolbar editor={editor} />}
       {role === 'viewer' && <div className="viewer-note">You have view-only access. Ask {initial.owner_name} for edit access.</div>}
       <div className="editor-body">
         <div className="paper">
           <EditorContent editor={editor} />
         </div>
-        {showHistory && canEdit && (
+        {showHistory && canEdit && !accessLost && (
           <HistoryPanel docId={docId} refreshKey={historyKey} onRestore={restore} onClose={() => setShowHistory(false)} />
         )}
       </div>

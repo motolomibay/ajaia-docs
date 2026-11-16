@@ -65,5 +65,7 @@ describe('Lap 1: users and login', () => {
     const res = await anon().post('/api/login').set('Content-Type', 'application/json').send('{bad').expect(400);
     expect(res.body).toEqual({ error: 'Invalid JSON body' });
     expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+    expect(res.headers['content-security-policy']).toContain("script-src 'self'");
   });
 });

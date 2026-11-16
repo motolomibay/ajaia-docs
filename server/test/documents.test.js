@@ -228,3 +228,17 @@ describe('Lap 5: version history', () => {
     expect((await alice.get(`/api/documents/${doc.id}`)).body.content_html).toBe('<p>v1</p>');
   });
 });
+
+describe('stress', () => {
+  it('S-4 1,000 snapshot-worthy saves keep exactly 10 versions (bounded storage)', async () => {
+    const ctx = setup();
+    const alice = await ctx.as('alice');
+    const doc = (await alice.post('/api/documents').send({ title: 'Cap' })).body;
+    for (let i = 0; i < 1000; i++) {
+      ctx.clock.advance(61_000);
+      await alice.patch(`/api/documents/${doc.id}`).send({ content_html: `<p>state ${i}</p>` }).expect(200);
+    }
+    expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM document_versions').get().n).toBe(10);
+    expect((await alice.get(`/api/documents/${doc.id}/versions`)).body).toHaveLength(10);
+  }, 30_000);
+});

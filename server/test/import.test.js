@@ -30,6 +30,7 @@ describe('Lap 4: upload .txt / .md', () => {
     const alice = await as('alice');
     expect((await upload(alice, `${'x'.repeat(250)}.txt`, 'hi').expect(201)).body.title).toHaveLength(200);
     expect((await upload(alice, 'UPPER.MD', '# hi').expect(201)).body.title).toBe('UPPER');
+    expect((await upload(alice, 'Résumé 计划 🚀.txt', 'hi').expect(201)).body.title).toBe('Résumé 计划 🚀');
   });
 
   it('L4-A4 unsupported types are 415', async () => {

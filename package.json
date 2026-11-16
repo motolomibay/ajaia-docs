@@ -10,7 +10,8 @@
     "dev": "concurrently -n api,web \"node --watch server/index.js\" \"vite\"",
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "stress": "node scripts/stress.mjs"
   },
   "dependencies": {
     "@tiptap/pm": "^3.34.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.3.0",
+    "autocannon": "^9.0.0",
     "concurrently": "^10.0.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
