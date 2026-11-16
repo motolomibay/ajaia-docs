@@ -167,7 +167,7 @@ delete. A collaborator who still has the doc open gets a locked editor and a "de
 **Result:** live ✅
 
 ## Packaging
-**Prompt:** Both videos recorded (Loom demo + architecture explanation); package for submission.
+**Prompt:** Both videos recorded on Loom (demo + architecture explanation); package for submission.
 **AI did:** Video links in VIDEO_LINK.txt and SUBMISSION.md; Drive checklist and submission-form text.
 **Result:** repo public and complete; Drive upload and form submission done by me.
 

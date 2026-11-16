@@ -8,7 +8,7 @@
 | **Live app** | https://ajaia.169-58-1-250.sslip.io |
 | **Source code** | https://github.com/motolomibay/ajaia-docs |
 | **Walkthrough video** | https://www.loom.com/share/8a397773c5884429ae7a3be69b16f7fd |
-| **Architecture & decisions video** | `Explain Ajaia.mp4` in the Google Drive folder |
+| **Architecture & decisions video** | https://www.loom.com/share/f43c3f8f4c53497f99934df63b211c85 |
 | **Test accounts** | Alice, Bob, Carol. Pick one on the login screen; no passwords |
 
 > To see two users at once, use a normal window and a private/incognito window (one login per browser).
@@ -22,7 +22,7 @@
 | Architecture note | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | AI workflow note | [AI_WORKFLOW.md](AI_WORKFLOW.md) |
 | This file | [SUBMISSION.md](SUBMISSION.md) |
-| Video links | [VIDEO_LINK.txt](VIDEO_LINK.txt) (Loom demo + architecture video in the Drive folder) |
+| Video links | [VIDEO_LINK.txt](VIDEO_LINK.txt) (Loom demo + Loom architecture explanation) |
 | Screenshots | [docs/screenshots/](docs/screenshots) |
 | Scope, test plan, AI log | [SPEC.md](SPEC.md), [TEST.md](TEST.md), [AI_LOG.md](AI_LOG.md) |
 | Sample upload files | [samples/](samples) |
