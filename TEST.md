@@ -187,7 +187,7 @@ live URL in a fresh incognito window; every error path in SPEC §4.2 shows a rea
 
 | Suite | Result |
 |---|---|
-| `npm test` | **58 / 58 passed** |
+| `npm test` | **61 / 61 passed** (incl. delete: owner only, cascade, 404 for everyone after) |
 | `npm run stress` | **6 / 6 passed**: S-1 ~21k requests, 0 errors, p99 140 ms · S-2 final content is one whole payload · S-5 900 KB save 0.3 s / load 0.04 s · S-6 60/60 accepted, 60/60 rejected 413, memory plateaus · S-7 access matches last op · S-8 back in 0.7 s, stored = last acknowledged save |
 | S-3, S-4 | In `npm test` (autosave burst with random latency + failures; 1,000 saves → exactly 10 versions) |
 | S-9 and manual checks | Verified in headless Chrome against the live site and by hand on phone + desktop (Loop A 13–19, Loop B 20–22) |

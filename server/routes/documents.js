@@ -24,6 +24,7 @@ export function documentRoutes(db, { now }) {
                                    FROM document_versions v JOIN users u ON u.id = v.created_by
                                    WHERE v.document_id = ? ORDER BY v.id DESC`);
   const versionById = db.prepare('SELECT * FROM document_versions WHERE id = ? AND document_id = ?');
+  const deleteDoc = db.prepare('DELETE FROM documents WHERE id = ?'); // shares + versions cascade
 
   // Timestamps must strictly increase per document so "updated_at advances" holds even within one millisecond.
   function stamp(prev) {
@@ -81,6 +82,12 @@ export function documentRoutes(db, { now }) {
     const version = versionById.get(parseId(req.params.vid), req.doc.id);
     if (!version) throw new HttpError(404, 'Version not found');
     res.json(toClient(restore(req.doc, version, req.user.id), req.role));
+  });
+
+  // Only the owner can delete. Shares and version history are removed with it (ON DELETE CASCADE).
+  r.delete('/documents/:id', requireRole(db, 'owner'), (req, res) => {
+    deleteDoc.run(req.doc.id);
+    res.json({ ok: true });
   });
 
   return r;

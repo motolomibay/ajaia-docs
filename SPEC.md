@@ -55,7 +55,7 @@ All rules are enforced on the **backend**; the UI hides controls but is not trus
 | Bulleted and numbered lists | MUST | Required |
 | Autosave with "Saving… / Saved", one save in flight per tab | MUST | Save without thinking; no out-of-order saves |
 | Version history: last 10 versions, snapshot at most every 60 s, restore (snapshot before restore) | MUST | Safety net for last-write-wins; listed stretch, chosen deliberately |
-| Delete a document (owner) | NICE | Expected but not required |
+| Delete a document (owner only; cascades shares + history) | NICE → **built** | Expected but not required; added after core was done |
 | Export to Markdown | NICE | Listed stretch |
 | Comments / suggestion mode | CUT | Depth over breadth |
 | Real-time co-editing, presence | CUT | CRDT/websockets is a large cost; last-write-wins is documented |

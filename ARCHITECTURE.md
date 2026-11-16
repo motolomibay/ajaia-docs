@@ -126,6 +126,7 @@ All JSON. Errors are `{ "error": "message", "code"?: "SESSION_CHANGED" | "LOGGED
 | PATCH | `/api/documents/:id` | owner, editor | `{title?, content_html?}`; may snapshot a version |
 | GET | `/api/documents/:id/versions` | owner, editor | newest first, max 10 |
 | POST | `/api/documents/:id/versions/:vid/restore` | owner, editor | snapshots current state, then restores |
+| DELETE | `/api/documents/:id` | owner | removes the doc, its shares and its history (cascade) |
 | GET / POST | `/api/documents/:id/shares` | owner | `POST {username, role}` (upsert) |
 | PATCH / DELETE | `/api/documents/:id/shares/:userId` | owner | change role / revoke |
 | POST | `/api/documents/import` | logged in | multipart `file`, `.txt`/`.md`, ≤ 1 MB → new doc |
@@ -144,7 +145,7 @@ flowchart TD
   L -- yes --> F{Valid id, doc exists?}
   F -- no --> E4[400 / 404]
   F -- yes --> O{owner_id = user?}
-  O -- yes --> OWN[owner: read · edit · history · share]
+  O -- yes --> OWN[owner: read · edit · history · share · delete]
   O -- no --> S{row in SHARES?}
   S -- no --> E403[403]
   S -- yes --> RL{role}
@@ -177,7 +178,8 @@ flowchart TD
   version history is the recovery path.
 - **Closing the tab** with unsaved text: the browser warns; if the user leaves anyway, the pending text is sent with
   `fetch(…, { keepalive: true })`, which outlives the page.
-- **Access revoked while editing**: the next save gets 403, the editor locks, and a banner explains it.
+- **Access revoked, or the document deleted, while editing**: the next save gets 403 / 404, the editor locks, and a
+  banner explains it.
 
 ### 7.3 Version history
 
@@ -215,7 +217,7 @@ flowchart LR
   JSON errors everywhere; malformed JSON → 400.
 - **Security headers:** Content-Security-Policy (only our own scripts), `X-Frame-Options: DENY`, `nosniff`,
   `Referrer-Policy`. Parameterized SQL only.
-- **Tests:** 58 automated tests (API, permission matrix, IDOR sweep, sanitizer, upload, versions, autosave queue,
+- **Tests:** 61 automated tests (API, permission matrix, IDOR sweep, sanitizer, upload, versions, autosave queue,
   session guard) and a 6-check stress suite (50-connection load at p99 ≈ 140 ms, same-document races, upload abuse
   with memory plateau, share churn, hard kill mid-write). Browser flows (formatting, sharing between three users,
   mobile layout, offline/online, close-tab save, CSP violations) were verified with scripted headless Chrome runs.
@@ -240,7 +242,7 @@ flowchart LR
 
 ## 10. What I'd build next (2–4 hours)
 
-1. **Delete document** and **export to Markdown** (small, expected).
+1. **Export to Markdown** (small, expected).
 2. **`.docx` import** via mammoth through the same sanitizer.
 3. **Conflict warning**: send the `updated_at` you loaded with each save, so the server can warn "Bob changed this
    while you were editing" instead of silently taking the last write.

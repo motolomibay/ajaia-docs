@@ -12,6 +12,17 @@ export default function Dashboard({ user }) {
 
   const [loadError, setLoadError] = useState('');
 
+  async function remove(doc) {
+    if (!window.confirm(`Delete "${doc.title}"? Everyone it is shared with loses access, and its history is deleted. This cannot be undone.`)) return;
+    setError('');
+    try {
+      await api(`/documents/${doc.id}`, { method: 'DELETE' });
+      setDocs((d) => ({ ...d, owned: d.owned.filter((x) => x.id !== doc.id) }));
+    } catch (e) {
+      setError(`Could not delete: ${e.message}`);
+    }
+  }
+
   function load() {
     setLoadError('');
     api('/documents').then(setDocs).catch((e) => setLoadError(e.message));
@@ -50,7 +61,7 @@ export default function Dashboard({ user }) {
         <h3>My documents</h3>
         {!docs ? <p className="muted">{loadError ? '—' : 'Loading…'}</p>
           : docs.owned.length === 0 ? <p className="muted empty">No documents yet. Create one to get started.</p>
-          : <DocList docs={docs.owned} />}
+          : <DocList docs={docs.owned} onDelete={remove} />}
       </section>
       <section>
         <h3>Shared with me</h3>
@@ -64,7 +75,7 @@ export default function Dashboard({ user }) {
 
 const ROLE_LABEL = { editor: 'Can edit', viewer: 'Can view' };
 
-function DocList({ docs }) {
+function DocList({ docs, onDelete }) {
   return (
     <ul className="doclist">
       {docs.map((d) => (
@@ -77,7 +88,12 @@ function DocList({ docs }) {
               </span>
             )}
           </div>
-          <span className="muted small">Edited {formatTime(d.updated_at)}</span>
+          <span className="doc-side">
+            <span className="muted small">Edited {formatTime(d.updated_at)}</span>
+            {onDelete && (
+              <button className="link danger small" onClick={() => onDelete(d)} aria-label={`Delete ${d.title}`}>Delete</button>
+            )}
+          </span>
         </li>
       ))}
     </ul>

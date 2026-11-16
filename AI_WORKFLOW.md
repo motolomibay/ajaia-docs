@@ -67,7 +67,7 @@ plan → build one loop → AI explains what changed and what could break → I 
 
 ## How I verified correctness, UX and reliability
 
-- **Correctness:** `npm test` (58 tests) runs before every commit and again on the server before every restart.
+- **Correctness:** `npm test` (61 tests) runs before every commit and again on the server before every restart.
 - **Security:** server-side role checks on every route (403 sweep), sanitizer allowlist (XSS tests), CSP headers
   with zero violations in real browser runs, parameterized SQL, session-mismatch guard.
 - **Reliability:** `npm run stress`: 50-connection load at p99 ≈ 140 ms with 0 errors, same-document races without

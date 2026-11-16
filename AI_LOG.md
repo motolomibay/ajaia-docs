@@ -148,3 +148,13 @@ AI did:    Verified the README steps from a fresh clone (install → 58 tests �
            generated screenshots from a demo-seeded throwaway server; added samples/ for upload testing; recorded
            final test and stress results in TEST.md; scanned files and history for secrets before publishing.
 Result:    docs complete; video link to be added by me after recording.
+
+## NICE: Delete document (owner only)
+Prompt:    "There is no delete; add it, and only the owner can do that."
+AI did:    DELETE /api/documents/:id guarded to owner (editor/viewer 403); shares + history cascade. Editor Delete button
+           and dashboard Delete link (owned rows only) with an explicit confirm; autosave stopped before deleting.
+           A shared user who still has the doc open gets a locked editor and "deleted by its owner" banner (404 latch).
+           3 new tests (61 total); browser test 9/9; docs updated (README, ARCHITECTURE, SUBMISSION, SPEC, TEST).
+I changed: Asked for it after the core was done; approved.
+Failed:    none
+Result:    live ✅

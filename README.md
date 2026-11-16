@@ -37,7 +37,7 @@ images, tables and raw HTML are reduced to plain text (the editor supports a fix
 
 | Area | What works |
 |---|---|
-| Documents | Create, rename, edit in the browser, reopen; dashboard split into *My documents* and *Shared with me* |
+| Documents | Create, rename, edit in the browser, reopen, **delete (owner only)**; dashboard split into *My documents* and *Shared with me* |
 | Formatting | Bold, italic, underline, H1–H3, bulleted and numbered lists, undo/redo |
 | Saving | Autosave (800 ms debounce, one save in flight per tab, retry when offline, save-on-close) |
 | Version history | Last 10 versions per document, snapshot at most once a minute, restore (undoable) |
@@ -75,7 +75,7 @@ SESSION_SECRET=any-long-random-string npm start   # http://localhost:4540
 ## Tests
 
 ```bash
-npm test          # 58 tests: API, permissions, sanitizer, upload, version history, autosave queue
+npm test          # 61 tests: API, permissions, sanitizer, upload, version history, autosave queue
 npm run stress    # 6 stress checks against a throwaway server (load, races, uploads, hard kill)
 ```
 

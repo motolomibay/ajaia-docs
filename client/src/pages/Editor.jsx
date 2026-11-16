@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { api } from '../api.js';
@@ -60,8 +60,10 @@ function DocumentEditor({ initial, user }) {
   const [showHistory, setShowHistory] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const [showShare, setShowShare] = useState(false);
-  // Latched: once a save is refused with 403 (access revoked or downgraded while open), editing stops until reload.
-  const [accessLost, setAccessLost] = useState(false);
+  // Latched: once a save is refused (403 access revoked/downgraded, 404 document deleted), editing stops.
+  const [accessLost, setAccessLost] = useState(null); // null | 'access' | 'deleted'
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
   const docId = initial.id;
   const role = initial.role;
   const canEdit = role === 'owner' || role === 'editor';
@@ -70,7 +72,8 @@ function DocumentEditor({ initial, user }) {
     (content_html) => api(`/documents/${docId}`, { method: 'PATCH', body: { content_html } }),
     {
       onStatus: (state, err) => {
-        if (err?.status === 403) setAccessLost(true);
+        if (err?.status === 403) setAccessLost('access');
+        if (err?.status === 404) setAccessLost('deleted');
         setStatus({ state, message: err?.message, status: err?.status });
       },
     },
@@ -114,6 +117,20 @@ function DocumentEditor({ initial, user }) {
     window.addEventListener('session-restored', retry);
     return () => window.removeEventListener('session-restored', retry);
   }, [queue]);
+
+  async function deleteDocument() {
+    const others = 'Everyone it is shared with loses access, and its version history is deleted too.';
+    if (!window.confirm(`Delete "${title}"? ${others} This cannot be undone.`)) return;
+    setDeleting(true);
+    queue.stop(); // no autosave may race the delete
+    try {
+      await api(`/documents/${docId}`, { method: 'DELETE' });
+      navigate('/', { replace: true });
+    } catch (e) {
+      setDeleting(false);
+      window.alert(`Could not delete: ${e.message}`);
+    }
+  }
 
   async function saveTitle() {
     if (title === savedTitle) return;
@@ -177,11 +194,22 @@ function DocumentEditor({ initial, user }) {
           </button>
         )}
         {role === 'owner' && <button className="primary" onClick={() => setShowShare(true)}>Share</button>}
+        {role === 'owner' && (
+          <button className="ghost-btn danger-btn" onClick={deleteDocument} disabled={deleting} title="Delete document">
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
       </div>
       {accessLost && (
         <div className="viewer-note">
-          Your access to this document changed, so your latest edits were not saved.{' '}
-          <button className="link" onClick={() => window.location.reload()}>Reload</button> to see your current access.
+          {accessLost === 'deleted' ? (
+            <>This document was deleted by its owner, so your latest edits were not saved. <Link to="/">Back to dashboard</Link></>
+          ) : (
+            <>
+              Your access to this document changed, so your latest edits were not saved.{' '}
+              <button className="link" onClick={() => window.location.reload()}>Reload</button> to see your current access.
+            </>
+          )}
         </div>
       )}
       {editor && canEdit && !accessLost && <Toolbar editor={editor} />}

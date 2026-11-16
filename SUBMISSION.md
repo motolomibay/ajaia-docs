@@ -1,6 +1,6 @@
 # Submission: Ajaia Docs
 
-**Candidate:** Motolomi Fanta
+**Candidate:** Motolomi Feleke
 **Role:** AI-Native Full Stack Developer
 
 | | |
@@ -28,7 +28,8 @@
 
 ## What works end to end
 
-- **Documents:** create, rename, edit, reopen; *My documents* vs *Shared with me*.
+- **Documents:** create, rename, edit, reopen, delete (owner only; shared users see it disappear); *My documents* vs
+  *Shared with me*.
 - **Rich text:** bold, italic, underline, H1–H3, bulleted and numbered lists, undo/redo; formatting survives
   refresh and restarts.
 - **Autosave:** one save in flight per tab, retry while offline, save on tab close, clear status text.
@@ -37,7 +38,7 @@
 - **Sharing:** owner shares as *Can edit* or *Can view*, changes roles, revokes; viewers get a read-only page;
   every rule enforced on the server.
 - **Robustness:** session guard across tabs, editor locks if access is revoked mid-edit, security headers.
-- **Quality:** 58 automated tests + 6 stress checks; deploys run the tests first.
+- **Quality:** 61 automated tests + 6 stress checks; deploys run the tests first.
 
 ## What I intentionally deprioritized
 
@@ -46,7 +47,7 @@
 | Real-time co-editing / presence | CRDT or websocket sync is a large build; last-write-wins plus version history covers recovery |
 | Comments / suggestion mode | Depth over breadth |
 | Real authentication | The brief allows mocked users; time went into editing and sharing |
-| `.docx` import, export, delete document | NICE items; core quality first |
+| `.docx` import, export to Markdown | NICE items; core quality first |
 | Viewer "Can view history" option | Low priority; not needed to prove the role model |
 
 ## Known limitations
@@ -62,7 +63,7 @@
 
 ## Next steps (2–4 hours)
 
-1. Delete document and export to Markdown.
+1. Export to Markdown.
 2. `.docx` import through the same sanitizer.
 3. Conflict warning: reject a save that's based on an outdated version and show what changed.
 4. Version preview, and the viewer "Can view history" option.
