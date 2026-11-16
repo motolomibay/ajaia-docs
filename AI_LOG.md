@@ -158,3 +158,8 @@ AI did:    DELETE /api/documents/:id guarded to owner (editor/viewer 403); share
 I changed: Asked for it after the core was done; approved.
 Failed:    none
 Result:    live ✅
+
+## Packaging
+Prompt:    Videos recorded (Loom demo + architecture explanation); package everything for submission.
+AI did:    Added video links to VIDEO_LINK.txt and SUBMISSION.md; prepared the Drive checklist and form text.
+Result:    repo public and complete; Drive upload and form submission done by me.

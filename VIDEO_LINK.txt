@@ -1,3 +1,8 @@
-Walkthrough video: <PASTE YOUR LOOM OR YOUTUBE LINK HERE>
-Live app: https://ajaia.169-58-1-250.sslip.io
-Source code: https://github.com/motolomibay/ajaia-docs
+Walkthrough video (demo of the main user flow):
+https://www.loom.com/share/8a397773c5884429ae7a3be69b16f7fd
+
+Architecture, trade-offs, testing and AI workflow explanation:
+"Explain Ajaia.mp4" — included in this Google Drive folder.
+
+Live app:     https://ajaia.169-58-1-250.sslip.io   (demo users: Alice, Bob, Carol — no passwords)
+Source code:  https://github.com/motolomibay/ajaia-docs
