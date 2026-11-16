@@ -1,0 +1,30 @@
+{
+  "name": "ajaia-docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web \"node --watch server/index.js\" \"vite\"",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.2.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5",
+    "supertest": "^7.3.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}
