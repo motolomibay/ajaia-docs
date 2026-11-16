@@ -59,7 +59,7 @@ function DocumentEditor({ initial }) {
 
   const queue = useMemo(() => createSaveQueue(
     (content_html) => api(`/documents/${docId}`, { method: 'PATCH', body: { content_html } }),
-    { onStatus: (state, err) => setStatus({ state, message: err?.message }) },
+    { onStatus: (state, err) => setStatus({ state, message: err?.message, status: err?.status }) },
   ), [docId]);
 
   const editor = useEditor({
@@ -74,6 +74,13 @@ function DocumentEditor({ initial }) {
     const warn = (ev) => { if (queueRef.current.busy) { ev.preventDefault(); ev.returnValue = ''; } };
     window.addEventListener('beforeunload', warn);
     return () => { window.removeEventListener('beforeunload', warn); queue.flush().finally(() => queue.destroy()); };
+  }, [queue]);
+
+  // After "Continue as …" in the session banner, send whatever is still unsaved.
+  useEffect(() => {
+    const retry = () => queue.flush();
+    window.addEventListener('session-restored', retry);
+    return () => window.removeEventListener('session-restored', retry);
   }, [queue]);
 
   async function saveTitle() {
@@ -99,7 +106,9 @@ function DocumentEditor({ initial }) {
     setHistoryKey((k) => k + 1);
   }
 
-  const statusText = status.state === 'error' ? `Not saved: ${status.message}` : STATUS_TEXT[status.state];
+  const statusText = status.state !== 'error' ? STATUS_TEXT[status.state]
+    : status.status === 401 ? 'Not saved: signed out in another tab'
+    : `Not saved: ${status.message}`;
 
   return (
     <div className="editor-page">

@@ -1,4 +1,5 @@
 import { HttpError, parseId } from './validate.js';
+import { notLoggedIn } from './auth.js';
 
 // Role of a user on a document: 'owner' | null. (Loop B adds 'editor' | 'viewer' from the shares table.)
 export function getRole(db, userId, doc) {
@@ -10,7 +11,7 @@ export function getRole(db, userId, doc) {
 export function requireRole(db, ...allowed) {
   const byId = db.prepare('SELECT * FROM documents WHERE id = ?');
   return (req, _res, next) => {
-    if (!req.user) throw new HttpError(401, 'Please log in');
+    if (!req.user) throw notLoggedIn(req);
     const doc = byId.get(parseId(req.params.id));
     if (!doc) throw new HttpError(404, 'Document not found');
     const role = getRole(db, req.user.id, doc);

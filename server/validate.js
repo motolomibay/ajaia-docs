@@ -2,7 +2,7 @@ export const MAX_TITLE = 200;
 export const MAX_CONTENT_BYTES = 1024 * 1024;
 
 export class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
 
 export function parseId(raw) {

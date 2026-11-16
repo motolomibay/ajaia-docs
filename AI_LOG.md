@@ -86,3 +86,15 @@ AI did:    Inspected stored HTML: lines joined by a soft break (<br>) sat tight,
            headings and lists keep their own margins, empty paragraphs keep height (Enter twice = blank line). CSS only.
 Failed:    none. Measured in the browser: paragraph gap = soft-break gap = 26 px.
 Result:    live ✅
+
+### Loop A fix: "Not saved: Please log in" with two tabs open
+Prompt:    Two tabs open; one was logged out, the other was editing → "Not saved: Please log in" (manual test).
+AI did:    Root cause: all tabs share one login cookie, so logout/switch user in one tab silently changes the others.
+           Worse case found while analysing: if the other tab picked Bob, Alice's tab would have saved AS BOB.
+           Fix: every request sends X-Expect-User; server refuses with 401 SESSION_CHANGED if the cookie's user differs
+           (never runs as the wrong user); tabs announce login/logout via BroadcastChannel (focus re-check fallback);
+           a banner offers "Continue as <user>" (re-login + save pending edits, nothing lost) or "Go to login".
+           4 new server tests (36 total); two-tab browser test of logout, switch-to-Bob, continue, and data check.
+I changed: Approved. Known limit, documented: one browser = one login; use a normal + incognito window to demo sharing.
+Failed:    none
+Result:    live ✅

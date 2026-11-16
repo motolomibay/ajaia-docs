@@ -36,7 +36,7 @@ export function createApp({ db, secret = 'dev-secret-change-me', secure = false,
       : status === 413 ? 'Request too large'
       : err.type === 'entity.parse.failed' ? 'Invalid JSON body'
       : status >= 500 ? 'Something went wrong' : err.message;
-    res.status(status).json({ error });
+    res.status(status).json(err.code ? { error, code: err.code } : { error });
   });
   return app;
 }
