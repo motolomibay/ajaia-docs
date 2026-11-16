@@ -39,6 +39,14 @@ export function openDb(file = ':memory:') {
       created_at   TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_versions_doc ON document_versions(document_id, id);
+    CREATE TABLE IF NOT EXISTS shares (
+      document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      user_id     INTEGER NOT NULL REFERENCES users(id),
+      role        TEXT NOT NULL CHECK (role IN ('editor', 'viewer')),
+      created_at  TEXT NOT NULL,
+      PRIMARY KEY (document_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_shares_user ON shares(user_id);
   `);
   const insert = db.prepare('INSERT OR IGNORE INTO users (username, name) VALUES (?, ?)');
   for (const u of SEED_USERS) insert.run(u.username, u.name);

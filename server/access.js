@@ -1,10 +1,11 @@
 import { HttpError, parseId } from './validate.js';
 import { notLoggedIn } from './auth.js';
 
-// Role of a user on a document: 'owner' | null. (Loop B adds 'editor' | 'viewer' from the shares table.)
+// Role of a user on a document: 'owner' | 'editor' | 'viewer' | null (no access).
 export function getRole(db, userId, doc) {
   if (doc.owner_id === userId) return 'owner';
-  return null;
+  const share = db.prepare('SELECT role FROM shares WHERE document_id = ? AND user_id = ?').get(doc.id, userId);
+  return share?.role ?? null;
 }
 
 // Route guard: loads req.doc and req.role, or fails with 400/401/404/403.

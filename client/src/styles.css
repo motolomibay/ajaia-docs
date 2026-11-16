@@ -84,3 +84,22 @@ main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .dialog { width: 100%; max-width: 440px; }
 .dialog h3 { margin: 0 0 .5rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+.upload { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: -.25rem 0 1rem; }
+.doc-main { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.badge { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+.badge.editor { background: #e0eaff; color: #1d4ed8; }
+.badge.viewer { background: #f2f4f7; color: #475467; }
+.owner-line { padding-left: .5rem; }
+.viewer-note { background: #fffaeb; border: 1px solid #fedf89; color: #93370d; border-radius: 10px; padding: .55rem .9rem; margin-bottom: .75rem; font-size: .9rem; }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.dialog-head h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share { max-width: 520px; }
+.share h4 { margin: 1.1rem 0 .4rem; font-size: .9rem; }
+.share-form { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
+.share-form select:first-child { flex: 1; min-width: 160px; }
+select { font: inherit; padding: .45rem .5rem; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; }
+.people { list-style: none; margin: 0; padding: 0; }
+.people li { display: flex; align-items: center; gap: .6rem; padding: .45rem 0; border-top: 1px solid #f0f1f3; }
+.people li:first-child { border-top: none; }
+.person { flex: 1; }
+.danger { color: #b42318; }

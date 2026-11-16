@@ -11,6 +11,10 @@ export function documentRoutes(db, { now }) {
   const r = Router();
   const versions = versionStore(db);
 
+  const listShared = db.prepare(`SELECT d.id, d.title, d.updated_at, s.role, u.name AS owner_name
+                                 FROM shares s JOIN documents d ON d.id = s.document_id JOIN users u ON u.id = d.owner_id
+                                 WHERE s.user_id = ? ORDER BY d.updated_at DESC, d.id DESC`);
+  const ownerName = db.prepare('SELECT name FROM users WHERE id = ?');
   const listOwned = db.prepare(`SELECT id, title, updated_at FROM documents WHERE owner_id = ? ORDER BY updated_at DESC, id DESC`);
   const insertDoc = db.prepare(`INSERT INTO documents (owner_id, title, content_html, updated_by, created_at, updated_at)
                                 VALUES (?, ?, ?, ?, ?, ?)`);
@@ -30,11 +34,12 @@ export function documentRoutes(db, { now }) {
 
   const toClient = (doc, role) => ({
     id: doc.id, title: doc.title, content_html: doc.content_html,
-    owner_id: doc.owner_id, created_at: doc.created_at, updated_at: doc.updated_at, role,
+    owner_id: doc.owner_id, owner_name: ownerName.get(doc.owner_id)?.name,
+    created_at: doc.created_at, updated_at: doc.updated_at, role,
   });
 
   r.get('/documents', requireUser, (req, res) => {
-    res.json({ owned: listOwned.all(req.user.id), shared: [] });
+    res.json({ owned: listOwned.all(req.user.id), shared: listShared.all(req.user.id) });
   });
 
   r.post('/documents', requireUser, (req, res) => {
@@ -44,7 +49,7 @@ export function documentRoutes(db, { now }) {
     res.status(201).json(toClient(byId.get(lastInsertRowid), 'owner'));
   });
 
-  r.get('/documents/:id', requireRole(db, 'owner'), (req, res) => {
+  r.get('/documents/:id', requireRole(db, 'owner', 'editor', 'viewer'), (req, res) => {
     res.json(toClient(req.doc, req.role));
   });
 
@@ -54,7 +59,7 @@ export function documentRoutes(db, { now }) {
     return byId.get(doc.id);
   });
 
-  r.patch('/documents/:id', requireRole(db, 'owner'), (req, res) => {
+  r.patch('/documents/:id', requireRole(db, 'owner', 'editor'), (req, res) => {
     const body = req.body ?? {};
     if (body.title === undefined && body.content_html === undefined) throw new HttpError(400, 'Nothing to update');
     const title = body.title === undefined ? req.doc.title : parseTitle(body.title);
@@ -62,7 +67,7 @@ export function documentRoutes(db, { now }) {
     res.json(toClient(save(req.doc, title, content, req.user.id), req.role));
   });
 
-  r.get('/documents/:id/versions', requireRole(db, 'owner'), (req, res) => {
+  r.get('/documents/:id/versions', requireRole(db, 'owner', 'editor'), (req, res) => {
     res.json(listVersions.all(req.doc.id));
   });
 
@@ -72,7 +77,7 @@ export function documentRoutes(db, { now }) {
     return byId.get(doc.id);
   });
 
-  r.post('/documents/:id/versions/:vid/restore', requireRole(db, 'owner'), (req, res) => {
+  r.post('/documents/:id/versions/:vid/restore', requireRole(db, 'owner', 'editor'), (req, res) => {
     const version = versionById.get(parseId(req.params.vid), req.doc.id);
     if (!version) throw new HttpError(404, 'Version not found');
     res.json(toClient(restore(req.doc, version, req.user.id), req.role));

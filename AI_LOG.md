@@ -98,3 +98,22 @@ AI did:    Root cause: all tabs share one login cookie, so logout/switch user in
 I changed: Approved. Known limit, documented: one browser = one login; use a normal + incognito window to demo sharing.
 Failed:    none
 Result:    live ✅
+
+### Loop A: edge-case run on the live site (by AI, at my request)
+Prompt:    Run checks 13–19 (empty title, paste from web, close tab, offline, no access, bad ids) on the VPS.
+AI did:    Scripted them in a real browser against the live URL in a throwaway "E2E check" doc, then deleted it.
+Result:    8/8 passed. Gap found: after the "leave page?" warning, confirming lost the last <800 ms of typing →
+           fixed in Loop B (keepalive save on page close).
+
+## Loop B: Access & intake (sharing with roles + upload)
+Prompt:    Build sharing with roles and .txt/.md upload; include the close-tab fix.
+AI did:    Server: shares table (editor/viewer, upsert, cascade), getRole → owner/editor/viewer, per-route allowed
+           roles (read: all; edit/history/restore: owner+editor; share: owner), share routes (list/grant/change/
+           revoke with validation); POST /documents/import (multer, ≤ 1 MB, .txt/.md, 415/413/400, UTF-8 and binary
+           checks; .md via marked + sanitizer, .txt escaped into paragraphs). Client: Share dialog, role badges and
+           owner names on the dashboard, viewer read-only editor (no toolbar/history/share + note), Upload button
+           with stated limits; pagehide keepalive save. 19 new tests (55 total) incl. an IDOR sweep over every :id
+           route; 3-user browser test 12/12.
+I changed: Approved as proposed.
+Failed:    none during build (one cleanup in review: replaced a window global for the upload header with getExpectedUser()).
+Result:    live ✅

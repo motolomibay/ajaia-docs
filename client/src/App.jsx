@@ -91,7 +91,7 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Dashboard user={user} />} />
-          <Route path="/docs/:id" element={<Editor />} />
+          <Route path="/docs/:id" element={<Editor user={user} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

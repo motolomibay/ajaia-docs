@@ -4,6 +4,7 @@
 // someone else) if another tab logged out or switched user — all tabs share one login cookie.
 let expectedUserId = null;
 export function setExpectedUser(id) { expectedUserId = id ?? null; }
+export function getExpectedUser() { return expectedUserId; }
 
 export async function api(path, { method = 'GET', body } = {}) {
   const headers = {};

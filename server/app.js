@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { loadUser } from './auth.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
+import { shareRoutes } from './routes/shares.js';
+import { importRoutes } from './routes/import.js';
 import { HttpError } from './validate.js';
 
 const DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../client/dist');
@@ -19,7 +21,9 @@ export function createApp({ db, secret = 'dev-secret-change-me', secure = false,
   app.use(loadUser(db));
 
   app.use('/api', authRoutes(db, { secure }));
+  app.use('/api', importRoutes(db, { now }));
   app.use('/api', documentRoutes(db, { now }));
+  app.use('/api', shareRoutes(db, { now }));
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
   // Serve the built SPA; any non-API path falls back to index.html.

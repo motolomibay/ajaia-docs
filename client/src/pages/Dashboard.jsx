@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { formatTime } from '../format.js';
+import UploadButton from '../components/UploadButton.jsx';
 
 export default function Dashboard({ user }) {
   const [docs, setDocs] = useState(null);
@@ -37,6 +38,7 @@ export default function Dashboard({ user }) {
           {creating ? 'Creating…' : '+ New document'}
         </button>
       </div>
+      <UploadButton onUploaded={(doc) => navigate(`/docs/${doc.id}`)} />
       {error && <p className="error">{error}</p>}
       {loadError && (
         <p className="error">
@@ -60,12 +62,21 @@ export default function Dashboard({ user }) {
   );
 }
 
+const ROLE_LABEL = { editor: 'Can edit', viewer: 'Can view' };
+
 function DocList({ docs }) {
   return (
     <ul className="doclist">
       {docs.map((d) => (
         <li key={d.id}>
-          <Link to={`/docs/${d.id}`}>{d.title}</Link>
+          <div className="doc-main">
+            <Link to={`/docs/${d.id}`}>{d.title}</Link>
+            {d.owner_name && (
+              <span className="muted small">
+                Owner: {d.owner_name} <span className={`badge ${d.role}`}>{ROLE_LABEL[d.role]}</span>
+              </span>
+            )}
+          </div>
           <span className="muted small">Edited {formatTime(d.updated_at)}</span>
         </li>
       ))}
