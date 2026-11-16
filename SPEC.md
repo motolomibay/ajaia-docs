@@ -133,16 +133,16 @@ Refresh → content, formatting, roles, history all persisted
 | Not logged in | 401 → redirected to login |
 | Share with yourself or unknown user | 400 |
 
-## 5. Build order (laps)
+## 5. Build order
 
-| Lap | Feature | Done when (details in TEST.md) |
-|---|---|---|
-| 1 | **Skeleton**: DB + seed, pick-user login, empty dashboard, one test | Live URL works; Alice can log in |
-| 2 | **Documents + editor**: create, list, open, rename, formatting, autosave queue | Formatted doc survives refresh |
-| 3 | **Sharing with roles**: share dialog, owned vs shared lists, viewer read-only, change role, revoke | Bob edits, Carol read-only, Carol 403 on save |
-| 4 | **Upload** `.txt` / `.md` → new doc | `.md` headings/lists arrive formatted; bad file rejected |
-| 5 | **Version history**: snapshots, list, restore | Restore brings back older content; restore is undoable |
-| 6 | **Hardening**: bug fixes, whole-project review; NICE items only if time remains | All tests green, live demo path passes |
+Lap 1 (skeleton) shipped first; the remaining features are grouped into **3 loops** of features that share code.
+
+| Loop | Features | Why together | Done when (details in TEST.md) |
+|---|---|---|---|
+| 1 | **Skeleton**: DB + seed, pick-user login, empty dashboard, one test | Foundation; live link first | Live URL works; Alice can log in |
+| A | **Write path**: create, list, open, rename, formatting, autosave queue **+ version history** | All on the same save path (`PATCH`) and editor page; snapshots happen inside the save | TEST.md Lap 2 + Lap 5 |
+| B | **Access & intake**: sharing with roles (share dialog, owned vs shared, viewer read-only, change role, revoke) **+ upload** `.txt`/`.md` | Both on the dashboard and behind `getRole`/`requireRole`; history locked to owner/editor here | TEST.md Lap 3 + Lap 4 |
+| C | **Hardening**: stress suite, whole-project review, bug fixes; NICE items only if time remains | Needs everything built | TEST.md Lap 6 + §7–8 |
 
 NICE items, in priority order if time remains: delete document → `.docx` import → export to Markdown →
 viewer "Can view history" checkbox.

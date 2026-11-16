@@ -20,6 +20,25 @@ export function openDb(file = ':memory:') {
       username TEXT NOT NULL UNIQUE,
       name     TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS documents (
+      id           INTEGER PRIMARY KEY,
+      owner_id     INTEGER NOT NULL REFERENCES users(id),
+      title        TEXT NOT NULL,
+      content_html TEXT NOT NULL DEFAULT '',
+      updated_by   INTEGER NOT NULL REFERENCES users(id),
+      created_at   TEXT NOT NULL,
+      updated_at   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
+    CREATE TABLE IF NOT EXISTS document_versions (
+      id           INTEGER PRIMARY KEY,
+      document_id  INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      title        TEXT NOT NULL,
+      content_html TEXT NOT NULL,
+      created_by   INTEGER NOT NULL REFERENCES users(id),
+      created_at   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_versions_doc ON document_versions(document_id, id);
   `);
   const insert = db.prepare('INSERT OR IGNORE INTO users (username, name) VALUES (?, ?)');
   for (const u of SEED_USERS) insert.run(u.username, u.name);

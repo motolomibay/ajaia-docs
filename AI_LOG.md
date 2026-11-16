@@ -27,3 +27,43 @@ I changed: - Regrouped scope by the brief's four feature areas; moved "Product &
 Failed:    none
 Result:    ARCHITECTURE.md, SPEC.md, TEST.md approved. Build order: skeleton → documents + editor → sharing with
            roles → upload → version history → hardening.
+
+## Lap 1: Skeleton
+Prompt:    Build the skeleton only: DB + seeded users, pick-user login, empty dashboard, one automated test; deploy live.
+AI did:    Express 5 + SQLite (better-sqlite3) server with signed-cookie mocked login; React + Vite client (user
+           picker, top bar with "Switch user", empty "My documents" / "Shared with me"); JSON error handler, nosniff,
+           2 MB body limit; server refuses to start in production without SESSION_SECRET. 8 tests (L1-A1..A7, X-1/X-7),
+           including a forged-cookie test. Deployed as systemd service `ajaia-docs` (:4540) behind Caddy (HTTPS).
+I changed: Approved as proposed; approved the Caddy + systemd changes (Caddyfile backed up, block appended only).
+Failed:    - Planned a Playwright browser smoke test, but Playwright isn't installed on the VPS → used curl against the
+             production build instead; visual check done by me on the live URL.
+           - systemd unit pointed at /usr/bin/node, an old system Node, instead of Node 22 (/usr/local/bin/node) →
+             first health check returned nothing; fixed the ExecStart path and restarted.
+           - Port 4520 was taken by another service → app uses 4540.
+Result:    live ✅ https://ajaia.169-58-1-250.sslip.io (HTTPS valid, API responding, other sites unaffected)
+
+## Loop A: Write path (documents + editor + autosave + version history)
+Prompt:    Regroup the remaining laps into 3 loops of features that belong together; build Loop A: create, list, open,
+           rename, rich-text editor, autosave queue and version history.
+AI did:    Server: documents + document_versions tables; routes for create/list/get/patch, versions list/restore;
+           validate.js (title 1–200, content ≤ 1 MB, ids), access.js requireRole guard, sanitize.js allowlist
+           (p, h1–h3, strong, em, u, ul, ol, li, br); snapshot ≤ 1 per 60 s, keep newest 10, snapshot+update in one
+           transaction; restore snapshots first so it can be undone. Client: TipTap with only the allowed formats,
+           toolbar with active states, saveQueue (800 ms debounce, one save in flight, retry, permanent-error stop,
+           flush), title rename with validation, History panel. Injected clock so history tests don't wait 60 s.
+           32 tests (API, sanitizer, autosave queue) + browser checks with a scratch Playwright script.
+I changed: - Grouped laps into 3 loops (A write path, B access & intake, C hardening) instead of one feature per lap.
+           - Tested the build on my phone and reported: "New document" did nothing for every user, the login screen
+             flashed empty before users appeared, and the top bar looked rough. Asked for a smoother, cleaner UI.
+Failed:    - Root cause of "New document did nothing": production served client/dist from the working folder, so my
+             local rebuild went live without approval: new frontend calling an old (Lap 1) backend → 404. Fixed the
+             process, not just the symptom: production now runs from its own checkout (/opt/ajaia-docs, data in
+             /var/lib/ajaia-docs) and deploy/deploy.sh deploys only pushed commits (npm ci → npm test → build →
+             restart → health check).
+           - Login flash: card rendered before the user list loaded → load session + users together; switch is instant.
+           - Found in my own phone-size browser check: editor was 34 px wide on mobile (flex column with
+             align-items: flex-start) → invisible text area; fixed with align-items: stretch. Title truncated on
+             mobile → header wraps.
+           - Sanitizer writes <br> as <br /> → test fixture uses the normalized form (equivalent HTML, not data loss).
+           - Dashboard stayed on "Loading…" when the API failed → shows the error with Retry.
+Result:    see deploy below

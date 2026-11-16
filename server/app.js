@@ -5,10 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadUser } from './auth.js';
 import { authRoutes } from './routes/auth.js';
+import { documentRoutes } from './routes/documents.js';
+import { HttpError } from './validate.js';
 
 const DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../client/dist');
 
-export function createApp({ db, secret = 'dev-secret-change-me', secure = false }) {
+export function createApp({ db, secret = 'dev-secret-change-me', secure = false, now = Date.now }) {
   const app = express();
   app.disable('x-powered-by');
   app.use((_req, res, next) => { res.set('X-Content-Type-Options', 'nosniff'); next(); });
@@ -17,6 +19,7 @@ export function createApp({ db, secret = 'dev-secret-change-me', secure = false 
   app.use(loadUser(db));
 
   app.use('/api', authRoutes(db, { secure }));
+  app.use('/api', documentRoutes(db, { now }));
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
   // Serve the built SPA; any non-API path falls back to index.html.
@@ -29,7 +32,8 @@ export function createApp({ db, secret = 'dev-secret-change-me', secure = false 
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     if (status >= 500) console.error(err);
-    const error = status === 413 ? 'Request too large'
+    const error = err instanceof HttpError ? err.message
+      : status === 413 ? 'Request too large'
       : err.type === 'entity.parse.failed' ? 'Invalid JSON body'
       : status >= 500 ? 'Something went wrong' : err.message;
     res.status(status).json({ error });

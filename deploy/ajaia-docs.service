@@ -1,0 +1,14 @@
+[Unit]
+Description=Ajaia Docs (assessment app)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/ajaia-docs
+EnvironmentFile=/etc/ajaia-docs.env
+Environment=NODE_ENV=production PORT=4540 DB_FILE=/var/lib/ajaia-docs/app.db
+ExecStart=/usr/local/bin/node server/index.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
