@@ -141,3 +141,10 @@ Failed:    - AI's first S-6/S-8 passed too easily (GC called in the test process
            - Then AI caught its own risk: making destroy() permanent could kill autosave during React cleanup → split
              into destroy() (timers only) and stop() (permanent), with a test.
 Result:    live ✅
+
+## Write-ups
+Prompt:    Write README, final ARCHITECTURE, AI_WORKFLOW, SUBMISSION, video-link file; make the repo public.
+AI did:    Verified the README steps from a fresh clone (install → 58 tests → build → start; dev mode proxies the API);
+           generated screenshots from a demo-seeded throwaway server; added samples/ for upload testing; recorded
+           final test and stress results in TEST.md; scanned files and history for secrets before publishing.
+Result:    docs complete; video link to be added by me after recording.

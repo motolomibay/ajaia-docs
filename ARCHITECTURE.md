@@ -1,22 +1,34 @@
 # Architecture
 
-Lightweight collaborative document editor: create, format, import, share and restore documents.
-Derived directly from the approved scope (see SPEC.md).
+Ajaia Docs is a lightweight collaborative document editor: create, format, import, share and restore documents.
+This note covers what was built, why, and what was traded away. Scope decisions are in [SPEC.md](SPEC.md).
 
-## 1. From scope to components
+## 1. What I prioritized and why
 
-| Scope area | Needs | Component |
-|---|---|---|
-| Creation & editing | Rich-text editor, rename, autosave | **Frontend**: React + TipTap editor page with save queue |
-| | Create / read / update docs | **Backend**: `/api/documents` routes |
-| | Version history + restore | **Backend**: `/api/documents/:id/versions`; **Frontend**: History panel |
-| File upload | Accept `.txt` / `.md`, validate, convert to rich text | **Backend**: `/api/documents/import` (multer + marked + sanitize-html) |
-| | Upload button with stated limits | **Frontend**: dashboard upload control |
-| Sharing | Users, login, owner, grant access, owned vs shared | **Backend**: auth middleware, `/api/documents/:id/shares`, `getRole()` |
-| | Share dialog, two dashboard lists | **Frontend**: dashboard + share dialog |
-| Persistence | Docs, versions, shares, users survive refresh/restart | **Database**: SQLite file (`data/app.db`) |
+The brief rewards **depth in a few areas over shallow coverage**. I put the time into the parts a real team
+would notice first:
 
-## 2. System overview
+1. **Saving that never loses or scrambles work**: autosave with exactly one save in flight per tab, retry when
+   offline, a save on tab close, and version history as a safety net.
+2. **Sharing that's enforced on the server**: owner / editor / viewer roles checked on every route, with an
+   automated sweep proving that a user without access gets 403 everywhere.
+3. **Safe content**: one sanitizer allowlist for everything that's stored (typed, pasted or uploaded).
+4. **A testable, honest deployment**: live HTTPS link, deploys only from pushed commits, tests run before every
+   restart.
+
+Deliberately **not** built: real-time co-editing, comments, real authentication, `.docx` (see §9).
+
+## 2. Scope to components
+
+| Scope area | Frontend | Backend | Data |
+|---|---|---|---|
+| Creation & editing | Editor page (TipTap), toolbar, title rename, save queue | `/api/documents` | `documents` |
+| Version history | History panel | `/api/documents/:id/versions` | `document_versions` |
+| File upload | Upload button with stated limits | `/api/documents/import` (multer → marked → sanitizer) | `documents` |
+| Sharing | Share dialog, role badges, read-only viewer mode | `/api/documents/:id/shares`, `getRole` / `requireRole` | `shares` |
+| Persistence | — | better-sqlite3 | SQLite file |
+
+## 3. System overview
 
 ```mermaid
 flowchart LR
@@ -25,37 +37,35 @@ flowchart LR
     TT[TipTap editor<br/>+ save queue]
   end
   UI --> TT
-  UI -- "fetch /api (JSON, signed cookie)" --> C[Caddy HTTPS<br/>ajaia.169-58-1-250.sslip.io]
-  C --> E[Express server :3001]
+  UI -- "fetch /api · JSON · signed cookie + X-Expect-User" --> C[Caddy · HTTPS]
+  C --> E[Express 5 · one Node process]
   subgraph Node process
     E --> MW[auth middleware<br/>cookie → user]
-    MW --> R1[documents routes]
-    MW --> R2[shares routes]
-    MW --> R3[import route<br/>multer → parse → sanitize]
-    MW --> R4[versions routes]
-    R1 & R2 & R3 & R4 --> AC[getRole]
-    AC --> DB[(SQLite<br/>better-sqlite3)]
+    MW --> R[documents · versions · shares · import routes]
+    R --> AC[getRole / requireRole]
+    R --> SZ[sanitize-html allowlist]
+    AC --> DB[(SQLite · better-sqlite3)]
     E -. "serves built SPA" .-> UI
   end
 ```
 
-One process, one port, one DB file: the fewest moving parts that still cover frontend, backend, persistence and
-access logic, with nothing for reviewers to pay for or install beyond `npm`.
+One process, one port, one database file: the fewest moving parts that still cover frontend, backend, persistence
+and access logic, with nothing for reviewers to pay for or install beyond `npm`.
 
-## 3. Tech stack: choices, alternatives, reasons
+## 4. Stack: choices, alternatives, reasons
 
-| Layer | Chosen | Alternatives considered | Why ours |
+| Layer | Chosen | Alternatives considered | Why |
 |---|---|---|---|
-| Frontend | **React + Vite** | Next.js, Vue, SvelteKit | Plain SPA, instant dev server, static build. Next.js adds SSR/routing we don't need |
-| Editor | **TipTap** (StarterKit + Underline) | Quill, Lexical, Slate, raw `contenteditable` | All required formats out of the box with a clean schema. Quill is dated; Lexical/Slate need more wiring; raw `contenteditable` is a bug farm |
-| Backend | **Node 22 + Express** | Fastify, NestJS, Next API routes, FastAPI | Minimal, widely known, one language front to back. NestJS is heavy for this size |
-| Database | **SQLite** (better-sqlite3) | Postgres, Supabase, JSON files | Zero setup, real SQL with foreign keys and transactions, survives restarts. Postgres needs a server; Supabase adds an account dependency; JSON files have no integrity |
-| Upload parsing | **multer + marked + sanitize-html** | Client-side parsing, mammoth (`.docx`) | Server-side validation can't be bypassed; sanitizing blocks XSS. `.docx` stays NICE |
-| Auth | **Pick-a-user + signed cookie** | Passwords, OAuth, Supabase Auth | Brief allows mocked auth; time goes into the product |
-| Tests | **Vitest + Supertest** | Jest, Playwright E2E | Fast API tests against an in-memory DB. E2E is slower to write and more fragile |
-| Deploy | **This VPS: systemd + Caddy** | Render, Railway, Vercel + DB | Free, automatic HTTPS, no cold starts. Vercel serverless can't keep a SQLite file; Render free tier sleeps and loses its disk |
+| Frontend | **React 19 + Vite** | Next.js, Vue, SvelteKit | Plain SPA, instant dev server, static build. Next.js adds SSR/routing we don't need |
+| Editor | **TipTap 3** (StarterKit, trimmed) | Quill, Lexical, Slate, raw `contenteditable` | All required formats out of the box with a strict schema. Quill is dated; Lexical/Slate need more wiring; raw `contenteditable` is a bug farm |
+| Backend | **Node 22 + Express 5** | Fastify, NestJS, Next API routes, FastAPI | Minimal and well known; one language end to end. NestJS is heavy for this size |
+| Database | **SQLite** (better-sqlite3) | Postgres, Supabase, JSON files | Zero setup, real SQL with foreign keys and transactions, survives restarts. Postgres needs a server; Supabase adds an account; JSON files have no integrity |
+| Upload | **multer + marked + sanitize-html** | Client-side parsing, mammoth (`.docx`) | Server-side validation can't be bypassed; one sanitizer for all content |
+| Auth | **Pick-a-user + signed cookie** | Passwords, OAuth | The brief allows mocked auth; time went into the product |
+| Tests | **Vitest + Supertest**, autocannon for load | Jest, Playwright E2E in CI | Fast API and unit tests against an in-memory DB. Browser checks were scripted separately (see §8) |
+| Deploy | **VPS: systemd + Caddy** | Render, Railway, Vercel | Free, automatic HTTPS, no cold starts, persistent disk. Vercel functions can't keep a SQLite file; free Render instances sleep and lose their disk |
 
-## 4. Data model
+## 5. Data model
 
 ```mermaid
 erDiagram
@@ -63,7 +73,6 @@ erDiagram
   USERS ||--o{ SHARES : "is granted"
   DOCUMENTS ||--o{ SHARES : "is shared via"
   DOCUMENTS ||--o{ DOCUMENT_VERSIONS : "has history"
-  USERS ||--o{ DOCUMENT_VERSIONS : "created by"
   USERS {
     int id PK
     text username UK
@@ -74,15 +83,15 @@ erDiagram
     int owner_id FK
     text title
     text content_html
-    datetime created_at
-    datetime updated_at
+    int updated_by FK
+    text created_at
+    text updated_at
   }
   SHARES {
     int document_id PK,FK
     int user_id PK,FK
     text role "editor | viewer"
-    int can_view_history "NICE, 0 or 1"
-    datetime created_at
+    text created_at
   }
   DOCUMENT_VERSIONS {
     int id PK
@@ -90,174 +99,150 @@ erDiagram
     text title
     text content_html
     int created_by FK
-    datetime created_at
+    text created_at
   }
 ```
 
-- Seeded users: `alice`, `bob`, `carol`.
-- `SHARES` primary key `(document_id, user_id)` prevents duplicate grants; sharing again updates the role (upsert).
-- `SHARES.role` is `CHECK (role IN ('editor','viewer'))`.
-- **NICE:** `SHARES.can_view_history` (default 0). Only meaningful for viewers: when 1, the viewer may *list*
-  versions (read-only); restore stays owner/editor only. Added only if time remains.
-- `SHARES` and `DOCUMENT_VERSIONS` use `ON DELETE CASCADE` from `DOCUMENTS`.
-- **Content is stored as sanitized HTML** (TipTap's native output). Import produces HTML too, so one format covers
-  editing, upload and history. Sanitized on every write with an allowlist: `p, h1–h3, strong, em, u, ul, ol, li, br`.
+- **Content is stored as sanitized HTML**, TipTap's native output. Uploads produce HTML too, so one format covers
+  editing, import and history. The allowlist is `p, h1–h3, strong, em, u, ul, ol, li, br` with no attributes:
+  scripts, event handlers, styles, links, images and iframes can never be stored. The editor is configured with
+  the same formats, so what you see is what's saved.
+- `shares (document_id, user_id)` is the primary key: sharing again **updates** the role instead of duplicating.
+- `shares` and `document_versions` cascade on document delete.
+- `updated_by` lets a version show **who wrote that state**, not just who triggered the snapshot.
 
-## 5. API
+## 6. API
 
-All responses are JSON. Errors: `{ "error": "message" }`.
+All JSON. Errors are `{ "error": "message", "code"?: "SESSION_CHANGED" | "LOGGED_OUT" }`.
 
-| Method | Route | Who | Notes |
+| Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/users` | public | login picker and share dialog |
-| POST | `/api/login` | public | `{username}` → sets signed cookie |
-| POST | `/api/logout` | any | clears cookie |
+| GET | `/api/users` | anyone | login picker, share dialog |
+| POST | `/api/login` · `/api/logout` | anyone | `{username}` → signed, HttpOnly, SameSite=Lax cookie |
 | GET | `/api/me` | logged in | current user |
-| GET | `/api/documents` | logged in | `{ owned: [...], shared: [...] }`; shared items include owner name and role |
-| POST | `/api/documents` | logged in | `{title?}` → new doc, caller is owner |
-| GET | `/api/documents/:id` | owner, editor, viewer | includes `role: "owner" \| "editor" \| "viewer"` |
+| GET | `/api/documents` | logged in | `{ owned, shared }`; shared rows include owner name and role |
+| POST | `/api/documents` | logged in | `{title?}` → new doc owned by caller |
+| GET | `/api/documents/:id` | owner, editor, viewer | includes `role` and `owner_name` |
 | PATCH | `/api/documents/:id` | owner, editor | `{title?, content_html?}`; may snapshot a version |
-| DELETE | `/api/documents/:id` | owner | (NICE) |
-| POST | `/api/documents/import` | logged in | multipart `file`; `.txt`/`.md`, ≤ 1 MB → new doc |
-| GET | `/api/documents/:id/shares` | owner | users with access |
-| POST | `/api/documents/:id/shares` | owner | `{username, role}`; upsert |
-| PATCH | `/api/documents/:id/shares/:userId` | owner | `{role, can_view_history?}` change role (checkbox is NICE) |
-| DELETE | `/api/documents/:id/shares/:userId` | owner | revoke |
-| GET | `/api/documents/:id/versions` | owner, editor (NICE: viewer with `can_view_history`) | last 10, newest first |
+| GET | `/api/documents/:id/versions` | owner, editor | newest first, max 10 |
 | POST | `/api/documents/:id/versions/:vid/restore` | owner, editor | snapshots current state, then restores |
+| GET / POST | `/api/documents/:id/shares` | owner | `POST {username, role}` (upsert) |
+| PATCH / DELETE | `/api/documents/:id/shares/:userId` | owner | change role / revoke |
+| POST | `/api/documents/import` | logged in | multipart `file`, `.txt`/`.md`, ≤ 1 MB → new doc |
 
-**Status codes:** 400 invalid input · 401 not logged in · 403 no access · 404 not found ·
-413 file too large · 415 unsupported file type.
+**Status codes:** 400 invalid input · 401 not logged in / session changed · 403 no access or role too low ·
+404 not found · 413 too large · 415 unsupported file type. Nothing returns a stack trace.
 
-## 6. Access logic
+## 7. Key logic
+
+### 7.1 Access control
 
 ```mermaid
 flowchart TD
-  Q[Request for doc :id] --> L{Logged in?}
+  Q[Request for doc :id] --> L{Logged in, and the<br/>user this tab expects?}
   L -- no --> E401[401]
-  L -- yes --> F{Doc exists?}
-  F -- no --> E404[404]
+  L -- yes --> F{Valid id, doc exists?}
+  F -- no --> E4[400 / 404]
   F -- yes --> O{owner_id = user?}
-  O -- yes --> OWN[role = owner<br/>read · edit · history · share · delete]
+  O -- yes --> OWN[owner: read · edit · history · share]
   O -- no --> S{row in SHARES?}
   S -- no --> E403[403]
-  S -- yes --> RL{SHARES.role}
-  RL -- editor --> ED[role = editor<br/>read · edit · history]
-  RL -- viewer --> VW[role = viewer<br/>read only<br/>NICE: + list history if can_view_history]
+  S -- yes --> RL{role}
+  RL -- editor --> ED[editor: read · edit · history]
+  RL -- viewer --> VW[viewer: read only]
 ```
 
-One helper, `getRole(userId, docId)` → `"owner" | "editor" | "viewer" | null`, plus a
-`requireRole(...allowed)` guard used by every document route (e.g. PATCH allows `owner, editor`). Roles are enforced
-on the backend; the viewer's read-only UI is a convenience, not the protection. This is the main target of the
-automated tests.
+One helper, `getRole(user, doc)`, plus a route guard `requireRole('owner', 'editor', …)` on every document route.
+The viewer's read-only UI is a convenience; the server is the protection.
 
-## 7. Key flows
-
-### 7.1 Autosave: last write wins, no out-of-order saves
+### 7.2 Autosave: last write wins, never out of order
 
 The race risk is on the client: if save #1 is still in flight when save #2 fires, they could arrive out of order and
-older content would overwrite newer. The editor therefore runs a **save queue: at most one save in flight per tab**.
+older content would overwrite newer. `saveQueue.js` therefore allows **at most one save in flight per tab**:
 
 ```mermaid
 flowchart TD
-  T[User types / formats] --> D[debounce 800 ms<br/>status: Saving…]
-  D --> Q{Save in flight?}
-  Q -- no --> P[PATCH /api/documents/:id]
-  Q -- yes --> M[mark dirty]
-  P --> R[response]
-  R --> DI{dirty?}
-  DI -- yes --> C[clear dirty] --> P
-  DI -- no --> OK[status: Saved]
-  M -. picked up after response .-> DI
+  T[User types] --> D[debounce 800 ms · "Saving…"]
+  D --> Q{save in flight?}
+  Q -- no --> P[PATCH content]
+  Q -- yes --> M[keep newest value pending]
+  P --> R{result}
+  R -- ok, more pending --> P
+  R -- ok --> OK["All changes saved"]
+  R -- network / 5xx --> RT[keep content · retry in 2 s]
+  R -- 401 / 403 / 413 --> ST[stop · explain to the user]
 ```
 
-- Within one tab, saves are strictly sequential, so they never arrive out of order.
-- On the server, each SQLite write is atomic (all or nothing).
-- **Across users** (Alice and Bob editing the same doc at once): **last write wins**. Accepted and documented;
-  version history is the safety net.
+- **Across users**, editing the same document at the same moment: last write wins. Accepted and documented;
+  version history is the recovery path.
+- **Closing the tab** with unsaved text: the browser warns; if the user leaves anyway, the pending text is sent with
+  `fetch(…, { keepalive: true })`, which outlives the page.
+- **Access revoked while editing**: the next save gets 403, the editor locks, and a banner explains it.
 
-### 7.2 Version history
+### 7.3 Version history
 
-- **Snapshot rule:** on PATCH, if the newest version for the doc is **older than 60 s** (or none exists), store the
-  current state as a version before updating. Snapshotting on every autosave would fill 10 slots in seconds.
-- **Retention:** keep the **last 10 versions** per doc; older ones are deleted in the same transaction.
-- **Restore:** always snapshots the current state first, so a restore can itself be undone.
+- On save, if the newest version is **older than 60 s** (or none exists), the *previous* state is stored first.
+  Saving a version on every autosave would fill the 10 slots in seconds.
+- Keep the **newest 10** per document; snapshot, update and prune run in **one transaction** (tested by forcing a
+  failure halfway).
+- **Restore** snapshots the current state first, so a restore can itself be undone.
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant API as Express
-  participant DB as SQLite
-  U->>API: PATCH /api/documents/7 {content_html}
-  API->>API: getRole ✓, sanitize
-  API->>DB: newest version older than 60 s?
-  alt yes
-    API->>DB: INSERT version (current state), prune to 10
-  end
-  API->>DB: UPDATE documents
-  API-->>U: 200 Saved
-  U->>API: POST /api/documents/7/versions/42/restore
-  API->>DB: INSERT version (current state), prune to 10
-  API->>DB: UPDATE documents with version 42
-  API-->>U: 200 restored doc
-```
+### 7.4 Sessions across tabs
 
-### 7.3 Share and see
+All tabs in a browser share one login cookie, so "Switch user" in one tab silently changes who the others are.
+Without a guard, Alice's open tab could have saved **as Bob**. Each request therefore sends `X-Expect-User`; if it
+doesn't match the cookie the server refuses with `401 SESSION_CHANGED`. Tabs also tell each other about
+login/logout (BroadcastChannel, with a re-check on focus), and the affected tab offers **Continue as Alice** (which
+re-sends pending edits) or **Go to login**.
 
-```mermaid
-sequenceDiagram
-  participant A as Alice
-  participant API as Express
-  participant DB as SQLite
-  participant B as Bob
-  A->>API: POST /api/documents/7/shares {username:"bob", role:"editor"}
-  API->>API: getRole(alice,7) == owner?
-  API->>DB: UPSERT shares (7, bob, editor)
-  B->>API: GET /api/documents
-  API-->>B: shared: [doc 7, owner Alice, role editor]
-```
-
-### 7.4 Import
+### 7.5 Upload
 
 ```mermaid
 flowchart LR
-  U[Upload file] --> X{.txt or .md?}
+  U[file] --> X{.txt or .md?}
   X -- no --> E415[415]
-  X -- yes --> S{≤ 1 MB?}
-  S -- no --> E413[413]
-  S -- yes --> P[.txt: lines → p<br/>.md: marked → HTML]
-  P --> Z[sanitize] --> I[INSERT doc, owner = me] --> O[open in editor]
+  X -- yes --> S{≤ 1 MB, not empty?}
+  S -- no --> E413[413 / 400]
+  S -- yes --> T{valid UTF-8 text?}
+  T -- no --> E400[400]
+  T -- yes --> P[.md → marked<br/>.txt → escaped paragraphs]
+  P --> Z[sanitize] --> I[new doc, owner = uploader]
 ```
 
-## 8. Project layout
+## 8. Quality and operations
 
-```
-server/
-  app.js          express app factory (used by tests)
-  index.js        starts server
-  db.js           schema + seed
-  auth.js         cookie middleware
-  access.js       getRole()
-  sanitize.js     HTML allowlist
-  routes/         documents.js, shares.js, import.js, versions.js
-  test/           api.test.js
-client/
-  src/pages/      Login, Dashboard, Editor
-  src/components/ Toolbar, ShareDialog, UploadButton, HistoryPanel
-  src/api.js      fetch wrapper
-  src/useAutosave.js  save queue
-data/app.db       (gitignored)
-```
+- **Validation & errors:** titles 1–200 characters (trimmed), content ≤ 1 MB, positive integer ids, known roles,
+  JSON errors everywhere; malformed JSON → 400.
+- **Security headers:** Content-Security-Policy (only our own scripts), `X-Frame-Options: DENY`, `nosniff`,
+  `Referrer-Policy`. Parameterized SQL only.
+- **Tests:** 58 automated tests (API, permission matrix, IDOR sweep, sanitizer, upload, versions, autosave queue,
+  session guard) and a 6-check stress suite (50-connection load at p99 ≈ 140 ms, same-document races, upload abuse
+  with memory plateau, share churn, hard kill mid-write). Browser flows (formatting, sharing between three users,
+  mobile layout, offline/online, close-tab save, CSP violations) were verified with scripted headless Chrome runs.
+  Details and results: [TEST.md](TEST.md).
+- **Deployment:** `deploy/deploy.sh` runs in a separate production checkout: fetch `main` → `npm ci` → `npm test`
+  → build → restart → health check. Data lives outside the code directory. This came from a real incident: early
+  on, production served files from the working folder, so an unapproved local build went live against an old
+  backend (see AI_WORKFLOW.md).
 
 ## 9. Trade-offs
 
-| We keep | We give up | Why |
+| Kept | Gave up | Why |
 |---|---|---|
-| Mocked login (pick a user, signed cookie) | Real authentication | Brief allows it; time goes to the editor and sharing |
-| Single process + SQLite file | Horizontal scaling, managed DB | Zero setup, easy to run locally and review |
-| Autosave with a one-in-flight queue; last write wins across users | Real-time co-editing, conflict resolution | CRDT/websockets is a large cost; queue removes same-tab races; history is the safety net |
-| Last 10 versions, snapshot at most every 60 s | Full, per-keystroke history | Useful restore points without unbounded growth |
-| Store sanitized HTML | Structured JSON queries on content | One format for editor, import and history; sanitizing guards against XSS |
-| Two share roles: editor, viewer | Fine-grained permissions (commenter, per-section) | Covers the real need with one column and one guard |
-| Viewer history checkbox as NICE | Viewers seeing past versions in the MUST build | Not needed to prove the role model; one extra column if time remains |
-| `.txt` / `.md` import | `.docx` (NICE) | Cheap and reliable first; `.docx` adds a parser dependency |
+| Mocked login (pick a user, signed cookie) | Real authentication | Brief allows it; time went into editing and sharing |
+| One process + SQLite file | Horizontal scaling, managed DB | Zero setup, easy to run and review; WAL mode handles this load (p99 ≈ 140 ms at 50 connections) |
+| Autosave, one-in-flight queue, last write wins | Real-time co-editing, conflict merging | CRDT/websockets is a large cost; history covers recovery |
+| Last 10 versions, ≤ 1 per minute | Per-keystroke history, version previews | Useful restore points with bounded storage |
+| Sanitized HTML storage | Structured JSON queries on content | One format for editor, import and history; the allowlist guards against XSS |
+| Two share roles (editor, viewer) | Commenter, per-section or link sharing | Covers the real need with one column and one guard |
+| `.txt` / `.md` import | `.docx` | Reliable first; `.docx` adds a parser and more edge cases |
+| One login per browser | Simultaneous users in one browser | Matches a real cookie session; guarded so a tab never saves as the wrong user |
+
+## 10. What I'd build next (2–4 hours)
+
+1. **Delete document** and **export to Markdown** (small, expected).
+2. **`.docx` import** via mammoth through the same sanitizer.
+3. **Conflict warning**: send the `updated_at` you loaded with each save, so the server can warn "Bob changed this
+   while you were editing" instead of silently taking the last write.
+4. **Version preview** before restoring, and the viewer "Can view history" option.
+5. Real auth (passwords or OAuth) and Postgres if it moved beyond a demo.

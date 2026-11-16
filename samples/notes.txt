@@ -1,0 +1,6 @@
+Meeting notes
+Attendees: Alice, Bob, Carol
+
+Decision: share the plan with Carol as a viewer.
+
+Tags like <b>this</b> & symbols stay as plain text.
